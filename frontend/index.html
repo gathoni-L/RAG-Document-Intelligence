@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interdoc • Document Intelligence</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b11;
+      --surface: #10151f;
+      --surface-muted: #151d2a;
+      --surface-bright: #17212f;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eef7;
+      --text-muted: #9ab0ce;
+      --accent: #5a8cff;
+      --accent-strong: #7aa5ff;
+      --success: #33d6a6;
+      --danger: #ff6b82;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at top left, rgba(90, 140, 255, 0.12), transparent 28%),
+                  linear-gradient(180deg, #090b11 0%, #07101d 100%);
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 30px;
+    }
+
+    .app-shell {
+      width: min(1480px, 100%);
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 28px;
+      min-height: calc(100vh - 60px);
+      padding: 24px;
+      background: rgba(16, 21, 31, 0.92);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      padding: 24px;
+      background: rgba(21, 29, 42, 0.92);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 28px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.55rem;
+      letter-spacing: -0.03em;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .upload-area {
+      display: grid;
+      place-items: center;
+      min-height: 200px;
+      gap: 14px;
+      border: 2px dashed rgba(255,255,255,0.18);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 65%);
+      color: var(--text-muted);
+      text-align: center;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area.hovered {
+      border-color: rgba(90, 140, 255, 0.65);
+      background: rgba(90, 140, 255, 0.08);
+    }
+
+    .upload-area input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-area .icon {
+      font-size: 2.5rem;
+      color: var(--accent);
+    }
+
+    .upload-area strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .upload-area span {
+      display: block;
+      max-width: 220px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .documents-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .document-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: var(--text);
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .document-item:hover {
+      transform: translateX(2px);
+      background: rgba(90, 140, 255, 0.08);
+    }
+
+    .document-item.active {
+      border-color: rgba(90, 140, 255, 0.35);
+      box-shadow: inset 0 0 0 1px rgba(90, 140, 255, 0.16);
+    }
+
+    .document-item small {
+      color: var(--text-muted);
+    }
+
+    .main-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 24px;
+      border-radius: 32px;
+      background: rgba(15, 20, 28, 0.96);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .status-bar h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(90, 140, 255, 0.15);
+      color: var(--accent-strong);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .chat-window {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 560px;
+      max-height: calc(100vh - 220px);
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
+    .message {
+      display: grid;
+      gap: 10px;
+      max-width: 82%;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .message.user {
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .bubble {
+      display: inline-block;
+      padding: 16px 18px;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(17, 24, 38, 0.94);
+      color: var(--text);
+      line-height: 1.7;
+      position: relative;
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
+    }
+
+    .message.user .bubble {
+      border-color: rgba(90, 140, 255, 0.25);
+      background: linear-gradient(180deg, rgba(43, 81, 220, 0.22), rgba(20, 28, 48, 0.96));
+    }
+
+    .message.assistant .bubble {
+      background: rgba(21, 29, 41, 0.96);
+    }
+
+    .metadata {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: centre;
+      gap: 6px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+
+    .tag strong {
+      color: var(--accent-strong);
+    }
+
+    .input-card {
+      display: grid;
+      gap: 14px;
+      padding: 20px;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(12, 16, 23, 0.96);
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 122px;
+      resize: vertical;
+      padding: 16px 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(20, 29, 42, 0.95);
+      color: var(--text);
+      font-size: 1rem;
+      line-height: 1.6;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: rgba(90, 140, 255, 0.5);
+      box-shadow: 0 0 0 4px rgba(90, 140, 255, 0.1);
+    }
+
+    button {
+      border: none;
+      border-radius: 20px;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+      box-shadow: 0 18px 30px rgba(46, 86, 235, 0.22);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .hint {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      gap: 10px;
+      min-height: 320px;
+      color: var(--text-muted);
+      border: 1px dashed rgba(255,255,255,0.12);
+      border-radius: 24px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .empty-state strong {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1060px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        order: 2;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+
+      .app-shell {
+        padding: 18px;
+        gap: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Interdoc</h1>
+        <p>Upload documents, ask questions, and get grounded answers with source citations.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Upload document</h2>
+        <label class="upload-area" id="drop-zone">
+          <div class="icon">📄</div>
+          <strong>Drag & drop a file</strong>
+          <span>Upload PDFs or text files to build your knowledge base.</span>
+          <input type="file" id="file-input" accept=".pdf,.txt" />
+        </label>
+        <p class="hint">Upload creates searchable chunks from your document so answers are backed by content.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Uploaded documents</h2>
+        <div class="documents-list" id="documents-list">
+          <div class="empty-state" id="documents-empty">
+            <strong>No documents yet</strong>
+            <span>Upload one to start asking questions.</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <div class="status-bar">
+        <div>
+          <h2>Ask Interdoc</h2>
+          <p class="hint">Questions are grounded in uploaded documents and include chunk citations.</p>
+        </div>
+        <div class="status-chip" id="server-status">Live • 127.0.0.1:8000</div>
+      </div>
+
+      <section class="chat-window" id="chat-window">
+        <div class="empty-state" id="chat-empty">
+          <strong>Ready when you are</strong>
+          <span>Upload a document, then ask a question to see helpful answers with citations.</span>
+        </div>
+      </section>
+
+      <div class="input-card">
+        <textarea id="question-input" placeholder="Ask a question about your uploaded documents..."></textarea>
+        <div class="input-row">
+          <button id="send-button">Send question</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const apiBase = 'http://127.0.0.1:8000';
+    const fileInput = document.getElementById('file-input');
+    const dropZone = document.getElementById('drop-zone');
+    const documentsList = document.getElementById('documents-list');
+    const documentsEmpty = document.getElementById('documents-empty');
+    const chatWindow = document.getElementById('chat-window');
+    const chatEmpty = document.getElementById('chat-empty');
+    const questionInput = document.getElementById('question-input');
+    const sendButton = document.getElementById('send-button');
+    const serverStatus = document.getElementById('server-status');
+
+    let documents = [];
+
+    async function fetchDocuments() {
+      try {
+        const response = await fetch(`${apiBase}/documents`);
+        const data = await response.json();
+        documents = data.documents || [];
+        renderDocuments();
+      } catch (error) {
+        serverStatus.textContent = 'Offline • Unable to reach API';
+        serverStatus.style.background = 'rgba(255, 107, 130, 0.15)';
+      }
+    }
+
+    function renderDocuments() {
+      documentsList.innerHTML = '';
+      if (!documents.length) {
+        documentsList.appendChild(documentsEmpty);
+        return;
+      }
+      documents.forEach((name) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'document-item';
+        item.innerHTML = `<span>${name}</span><small>uploaded</small>`;
+        item.addEventListener('click', () => {
+          window.alert(`Document selected: ${name}`);
+        });
+        documentsList.appendChild(item);
+      });
+    }
+
+    function createBubble(text, role, sources = []) {
+      const message = document.createElement('div');
+      message.className = `message ${role}`;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+      message.appendChild(bubble);
+
+      if (sources?.length) {
+        const meta = document.createElement('div');
+        meta.className = 'metadata';
+        sources.forEach((source) => {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.innerHTML = `<strong>${source.source}</strong> · chunk ${source.chunk_index}`;
+          meta.appendChild(tag);
+        });
+        message.appendChild(meta);
+      }
+
+      return message;
+    }
+
+    function addMessage(text, role, sources) {
+      if (chatEmpty.parentElement) {
+        chatEmpty.remove();
+      }
+      const bubble = createBubble(text, role, sources);
+      chatWindow.appendChild(bubble);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    async function uploadFile(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      addMessage(`Uploading ${file.name}...`, 'assistant');
+
+      try {
+        const response = await fetch(`${apiBase}/upload`, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        addMessage(`Uploaded ${data.filename} with ${data.chunks_created} chunks.`, 'assistant');
+        await fetchDocuments();
+      } catch (error) {
+        addMessage('Upload failed. Please try again.', 'assistant');
+      }
+    }
+
+    async function sendQuestion() {
+      const question = questionInput.value.trim();
+      if (!question) return;
+
+      addMessage(question, 'user');
+      questionInput.value = '';
+      addMessage('Looking for the best answer…', 'assistant');
+
+      try {
+        const response = await fetch(`${apiBase}/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+        if (!response.ok) throw new Error('Query failed');
+        const data = await response.json();
+        const answer = data.answer || 'No answer was returned.';
+        chatWindow.lastElementChild.remove();
+        addMessage(answer, 'assistant', data.sources || []);
+      } catch (error) {
+        chatWindow.lastElementChild.remove();
+        addMessage('Unable to fetch an answer. Check the API or try again.', 'assistant');
+      }
+    }
+
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) uploadFile(file);
+      fileInput.value = '';
+    });
+
+    dropZone.addEventListener('dragenter', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('hovered');
+    });
+
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('hovered');
+    });
+
+    ['dragleave', 'dragend'].forEach((eventName) => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.remove('hovered');
+      });
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('hovered');
+      const file = event.dataTransfer.files[0];
+      if (file) uploadFile(file);
+    });
+
+    sendButton.addEventListener('click', sendQuestion);
+    questionInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendQuestion();
+      }
+    });
+
+    fetchDocuments();
+  </script>
+</body>
+</html>
